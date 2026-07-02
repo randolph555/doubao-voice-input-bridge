@@ -10,26 +10,11 @@ on:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: doubao-voice-input-windows-x64
-          - os: windows-latest
-            target: i686-pc-windows-msvc
-            artifact_name: doubao-voice-input-windows-x86
-          - os: macos-13
-            target: x86_64-apple-darwin
-            artifact_name: doubao-voice-input-macos-intel
-          - os: macos-14
-            target: aarch64-apple-darwin
-            artifact_name: doubao-voice-input-macos-apple-silicon
-
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     env:
       CMAKE_ARGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      BUILD_TARGET: x86_64-pc-windows-msvc
+      ARTIFACT_NAME: doubao-voice-input-windows-x64
 
     steps:
       - name: Checkout
@@ -45,7 +30,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Add Rust target
-        run: rustup target add ${{ matrix.target }}
+        run: rustup target add $env:BUILD_TARGET
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -56,11 +41,11 @@ jobs:
         run: npm ci
 
       - name: Build desktop bundle
-        run: npm run tauri build -- --target ${{ matrix.target }}
+        run: npm run tauri build -- --target $env:BUILD_TARGET
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: src-tauri/target/${{ matrix.target }}/release/bundle/
+          name: ${{ env.ARTIFACT_NAME }}
+          path: src-tauri/target/${{ env.BUILD_TARGET }}/release/bundle/
           if-no-files-found: error
