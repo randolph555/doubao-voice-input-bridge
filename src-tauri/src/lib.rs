@@ -341,7 +341,7 @@ async fn start_recording(
         println!("采集线程结束");
     });
 
-    tokio::time::sleep(Duration::from_millis(250)).await;
+    tokio::time::sleep(Duration::from_millis(120)).await;
 
     // 建立 ASR 流
     let asr_client = AsrClient::new(credentials);

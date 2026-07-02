@@ -14,6 +14,7 @@ let resultBox;
 let recordBtn;
 let selectFileBtn;
 let copyBtn;
+let recordingTransition = false;
 
 function getDisplayedText() {
   return [finalText, interimText].filter(Boolean).join(finalText && interimText ? "\n\n" : "");
@@ -108,39 +109,51 @@ function setStatus(mode) {
   }
 }
 
+function applyRecordingUiState(isRecording) {
+  recording = isRecording;
+  setStatus(isRecording ? "recording" : "idle");
+  recordBtn.querySelector(".btn-text").textContent = isRecording ? "停止录音" : "开始录音";
+  recordBtn.querySelector(".btn-icon").textContent = isRecording ? "⏹️" : "🎙️";
+  setFileButtonMode("select");
+}
+
 // 切换录音
 async function toggleRecording() {
-  if (busy) return;
+  if (busy || recordingTransition) return;
 
   if (!recording) {
     // 开始
     try {
+      recordingTransition = true;
       finalText = "";
       interimText = "";
       updateResultDisplay();
+      applyRecordingUiState(true);
+      recordBtn.disabled = true;
 
       await invoke("start_recording");
-      recording = true;
-      setStatus("recording");
-      recordBtn.querySelector(".btn-text").textContent = "停止录音";
-      recordBtn.querySelector(".btn-icon").textContent = "⏹️";
-      setFileButtonMode("select");
     } catch (error) {
+      applyRecordingUiState(false);
       console.error("开始录音失败:", error);
       alert("开始录音失败: " + error);
+    } finally {
+      recordingTransition = false;
+      recordBtn.disabled = false;
     }
   } else {
     // 停止
     try {
+      recordingTransition = true;
+      recordBtn.disabled = true;
+      applyRecordingUiState(false);
       await invoke("stop_recording");
     } catch (error) {
+      applyRecordingUiState(true);
       console.error("停止录音失败:", error);
+    } finally {
+      recordingTransition = false;
+      recordBtn.disabled = false;
     }
-    recording = false;
-    setStatus("idle");
-    recordBtn.querySelector(".btn-text").textContent = "开始录音";
-    recordBtn.querySelector(".btn-icon").textContent = "🎙️";
-    setFileButtonMode("select");
   }
 }
 
