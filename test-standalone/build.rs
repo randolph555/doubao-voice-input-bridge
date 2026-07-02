@@ -1,7 +1,6 @@
-use std::env::var_os;
-
 fn main() {
-    let out_dir = std::env::var("OUT_DIR").unwrap();
+    let protoc = protoc_bin_vendored::protoc_bin_path().expect("failed to locate bundled protoc");
+    std::env::set_var("PROTOC", protoc);
 
     // 编译 protobuf
     let proto_path = "../src-tauri/proto/asr.proto";
