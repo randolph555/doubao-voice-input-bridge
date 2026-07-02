@@ -21,3 +21,6 @@ hex = "0.4.3"
 
 [build-dependencies]
 prost-build = "0.13"
+
+[patch.crates-io]
+audiopus_sys = { path = "../vendor/audiopus_sys" }

@@ -50,3 +50,6 @@ dirs = "5.0"
 md5 = "0.7"
 # 音频解码
 symphonia = { version = "0.5", features = ["mp3", "wav", "flac", "aac"] }
+
+[patch.crates-io]
+audiopus_sys = { path = "../vendor/audiopus_sys" }
