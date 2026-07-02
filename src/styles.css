@@ -30,10 +30,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 100vh;
   padding: 2rem;
-  gap: 2rem;
+  gap: 1.25rem;
 }
 
 .header {
@@ -99,6 +99,8 @@ body {
 .result-container {
   width: 100%;
   max-width: 600px;
+  flex: 1;
+  min-height: 0;
 }
 
 .result-box {
@@ -108,36 +110,48 @@ body {
   padding: 2rem;
   min-height: 200px;
   max-height: 400px;
+  width: 100%;
+  resize: vertical;
   overflow-y: auto;
-}
-
-.placeholder {
-  color: var(--color-text-muted);
-  text-align: center;
-  font-style: italic;
-}
-
-.final-text {
+  color: var(--color-text);
   font-size: 1.1rem;
   line-height: 1.8;
-  margin-bottom: 1rem;
+  background: var(--color-surface);
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
 }
 
+.result-box::placeholder {
+  color: var(--color-text-muted);
+}
+
+.result-box:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.18);
+}
+
+.final-text,
 .interim-text {
   font-size: 1.1rem;
   line-height: 1.8;
-  color: var(--color-text-muted);
-  font-style: italic;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .controls {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
+  width: 100%;
+  max-width: 600px;
 }
 
 button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -146,6 +160,15 @@ button {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 0;
+  flex: 1 1 180px;
+}
+
+.btn-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -178,6 +201,8 @@ button:disabled {
   text-align: center;
   color: var(--color-text-muted);
   font-size: 0.9rem;
+  max-width: 600px;
+  word-break: break-word;
 }
 
 kbd {
@@ -208,3 +233,17 @@ kbd {
   background: #555;
 }
 
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.6rem;
+  }
+
+  .result-box {
+    padding: 1rem;
+    min-height: 240px;
+  }
+}

@@ -2,17 +2,13 @@ use opus::{Channels, Application, Encoder as OpusEncoder};
 
 pub struct AudioEncoder {
     encoder: OpusEncoder,
-    sample_rate: u32,
 }
 
 impl AudioEncoder {
     pub fn new(sample_rate: u32) -> Result<Self, Box<dyn std::error::Error>> {
         let encoder = OpusEncoder::new(sample_rate, Channels::Mono, Application::Voip)?;
 
-        Ok(Self {
-            encoder,
-            sample_rate,
-        })
+        Ok(Self { encoder })
     }
 
     pub fn encode(&mut self, pcm: &[f32]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {

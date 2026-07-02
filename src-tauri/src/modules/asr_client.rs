@@ -300,7 +300,6 @@ impl AsrClient {
                         }
                     }
                     Ok(Some(Ok(WsMessage::Text(text)))) => {
-                        last_activity = Instant::now();
                         failed = true;
                         let _ = result_tx
                             .send(TranscriptionResult::failed(format!(
@@ -313,7 +312,6 @@ impl AsrClient {
                     }
                     Ok(Some(Ok(_))) => {}
                     Ok(Some(Err(e))) => {
-                        last_activity = Instant::now();
                         let message = format!("Read failed: {}", e);
                         failed = true;
                         let _ = result_tx

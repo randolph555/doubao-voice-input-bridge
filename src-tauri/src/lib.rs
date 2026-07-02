@@ -15,6 +15,8 @@ use tokio::time::{sleep, Duration};
 struct RecordingState {
     mic: Mutex<Option<modules::audio::MicCapture>>,
     active: Mutex<bool>,
+    stopping: Mutex<bool>,
+    result_task: Mutex<Option<JoinHandle<()>>>,
 }
 
 #[derive(Default)]
@@ -226,6 +228,13 @@ async fn start_recording(
     state: State<'_, Arc<RecordingState>>,
 ) -> Result<(), String> {
     {
+        let stopping = state.stopping.lock().await;
+        if *stopping {
+            return Err("录音会话正在停止，请稍候再试".to_string());
+        }
+    }
+
+    {
         let mut active = state.active.lock().await;
         if *active {
             return Err("已在录音中".to_string());
@@ -336,17 +345,30 @@ async fn start_recording(
             }
             let mut active = state.active.lock().await;
             *active = false;
+            let mut stopping = state.stopping.lock().await;
+            *stopping = false;
             return Err(message);
         }
     };
 
     // 转发识别结果到前端
-    tokio::spawn(async move {
+    let recording_state = Arc::clone(state.inner());
+    let forward_task = tokio::spawn(async move {
         while let Some(result) = result_rx.recv().await {
             let _ = app.emit("transcription", result);
         }
+        {
+            let mut stopping = recording_state.stopping.lock().await;
+            *stopping = false;
+        }
+        {
+            let mut task = recording_state.result_task.lock().await;
+            *task = None;
+        }
         println!("录音结果流结束");
     });
+    let mut task = state.result_task.lock().await;
+    *task = Some(forward_task);
 
     Ok(())
 }
@@ -356,6 +378,13 @@ async fn start_recording(
 async fn stop_recording(
     state: State<'_, Arc<RecordingState>>,
 ) -> Result<(), String> {
+    {
+        let mut stopping = state.stopping.lock().await;
+        if *stopping {
+            return Ok(());
+        }
+        *stopping = true;
+    }
     {
         let mut guard = state.mic.lock().await;
         if let Some(mic) = guard.take() {

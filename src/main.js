@@ -15,6 +15,10 @@ let recordBtn;
 let selectFileBtn;
 let copyBtn;
 
+function getDisplayedText() {
+  return [finalText, interimText].filter(Boolean).join(finalText && interimText ? "\n\n" : "");
+}
+
 function setFileButtonMode(mode) {
   const icon = selectFileBtn.querySelector(".btn-icon");
   const text = selectFileBtn.querySelector(".btn-text");
@@ -64,7 +68,10 @@ async function setupListener() {
 
       if (result.status === "cancelled") {
         busy = false;
-        setStatus(recording ? "recording" : "idle");
+        recording = false;
+        setStatus("idle");
+        recordBtn.querySelector(".btn-text").textContent = "开始录音";
+        recordBtn.querySelector(".btn-icon").textContent = "🎙️";
         recordBtn.disabled = false;
         setFileButtonMode("select");
         return;
@@ -82,18 +89,9 @@ async function setupListener() {
 }
 
 function updateResultDisplay() {
-  if (finalText || interimText) {
-    resultBox.innerHTML = `
-      ${finalText ? `<p class="final-text">${finalText}</p>` : ""}
-      ${interimText ? `<p class="interim-text">${interimText}</p>` : ""}
-    `;
-    resultBox.scrollTop = resultBox.scrollHeight;
-    copyBtn.disabled = !finalText;
-  } else {
-    resultBox.innerHTML =
-      '<p class="placeholder">点击"开始录音"说话，或选择音频文件...</p>';
-    copyBtn.disabled = true;
-  }
+  resultBox.value = getDisplayedText();
+  resultBox.scrollTop = resultBox.scrollHeight;
+  copyBtn.disabled = !resultBox.value.trim();
 }
 
 function setStatus(mode) {
@@ -215,9 +213,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   selectFileBtn.addEventListener("click", selectAndTranscribeFile);
 
   copyBtn.addEventListener("click", async () => {
-    if (finalText) {
+    if (resultBox.value.trim()) {
       try {
-        await navigator.clipboard.writeText(finalText);
+        await navigator.clipboard.writeText(resultBox.value);
         const el = copyBtn.querySelector(".btn-text");
         const original = el.textContent;
         el.textContent = "已复制!";
@@ -228,5 +226,11 @@ window.addEventListener("DOMContentLoaded", async () => {
         console.error("复制失败:", error);
       }
     }
+  });
+
+  resultBox.addEventListener("input", () => {
+    finalText = resultBox.value;
+    interimText = "";
+    copyBtn.disabled = !resultBox.value.trim();
   });
 });
