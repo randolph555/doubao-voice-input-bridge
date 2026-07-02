@@ -1,4 +1,4 @@
-name: windows-build
+name: desktop-build
 
 on:
   workflow_dispatch:
@@ -9,8 +9,21 @@ on:
       - release
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: doubao-voice-input-windows-x64
+          - os: macos-13
+            artifact_name: doubao-voice-input-macos-intel
+          - os: macos-14
+            artifact_name: doubao-voice-input-macos-apple-silicon
+
+    runs-on: ${{ matrix.os }}
+    env:
+      CMAKE_ARGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
     steps:
       - name: Checkout
@@ -33,14 +46,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build Windows bundle
+      - name: Build desktop bundle
         run: npm run tauri build
 
-      - name: Upload Windows artifacts
+      - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: doubao-voice-input-windows
-          path: |
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/msi/*.msi
+          name: ${{ matrix.artifact_name }}
+          path: src-tauri/target/release/bundle/
           if-no-files-found: error
