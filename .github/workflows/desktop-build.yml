@@ -17,21 +17,18 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: doubao-voice-input-windows-x64
-            enabled: true
-          - os: windows-latest
-            target: i686-pc-windows-msvc
-            artifact_name: doubao-voice-input-windows-x86
-            enabled: false
-          - os: macos-13
-            target: x86_64-apple-darwin
-            artifact_name: doubao-voice-input-macos-intel
-            enabled: false
-          - os: macos-14
-            target: aarch64-apple-darwin
-            artifact_name: doubao-voice-input-macos-apple-silicon
-            enabled: false
+          # Temporarily disabled to keep CI fast while validating Windows x64.
+          # Re-enable by uncommenting the entries below.
+          # - os: windows-latest
+          #   target: i686-pc-windows-msvc
+          #   artifact_name: doubao-voice-input-windows-x86
+          # - os: macos-13
+          #   target: x86_64-apple-darwin
+          #   artifact_name: doubao-voice-input-macos-intel
+          # - os: macos-14
+          #   target: aarch64-apple-darwin
+          #   artifact_name: doubao-voice-input-macos-apple-silicon
 
-    if: matrix.enabled
     runs-on: ${{ matrix.os }}
     env:
       CMAKE_ARGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
