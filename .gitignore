@@ -16,8 +16,7 @@ test-standalone/target
 *.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode/
 .idea
 .DS_Store
 *.suo
@@ -25,3 +24,9 @@ test-standalone/target
 *.njsproj
 *.sln
 *.sw?
+
+# Local/internal docs
+DEVELOPMENT.md
+PROBLEM_REPORT.md
+TODO.md
+report.md
