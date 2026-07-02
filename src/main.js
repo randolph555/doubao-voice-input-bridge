@@ -1,0 +1,232 @@
+const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
+const { open } = window.__TAURI__.dialog;
+
+let finalText = "";
+let interimText = "";
+let recording = false;
+let busy = false; // 文件转写进行中
+
+let statusIndicator;
+let statusText;
+let statusDot;
+let resultBox;
+let recordBtn;
+let selectFileBtn;
+let copyBtn;
+
+function setFileButtonMode(mode) {
+  const icon = selectFileBtn.querySelector(".btn-icon");
+  const text = selectFileBtn.querySelector(".btn-text");
+
+  if (mode === "cancel") {
+    icon.textContent = "✖️";
+    text.textContent = "取消转写";
+    selectFileBtn.disabled = false;
+  } else {
+    icon.textContent = "📁";
+    text.textContent = "选择文件";
+    selectFileBtn.disabled = recording;
+  }
+}
+
+// 监听转写结果
+async function setupListener() {
+  await listen("transcription", (event) => {
+    const result = event.payload;
+    if (result.status) {
+      if (result.status === "completed") {
+        if (busy) {
+          busy = false;
+          setStatus(recording ? "recording" : "idle");
+          recordBtn.disabled = false;
+          setFileButtonMode("select");
+        }
+        return;
+      }
+
+      if (result.status === "failed") {
+        busy = false;
+        if (recording) {
+          recording = false;
+          recordBtn.querySelector(".btn-text").textContent = "开始录音";
+          recordBtn.querySelector(".btn-icon").textContent = "🎙️";
+        }
+        setStatus("idle");
+        recordBtn.disabled = false;
+        setFileButtonMode("select");
+        if (result.error) {
+          console.error("转写失败:", result.error);
+          alert("转写失败: " + result.error);
+        }
+        return;
+      }
+
+      if (result.status === "cancelled") {
+        busy = false;
+        setStatus(recording ? "recording" : "idle");
+        recordBtn.disabled = false;
+        setFileButtonMode("select");
+        return;
+      }
+    }
+
+    if (result.is_final) {
+      finalText += (finalText ? " " : "") + result.text;
+      interimText = "";
+    } else {
+      interimText = result.text;
+    }
+    updateResultDisplay();
+  });
+}
+
+function updateResultDisplay() {
+  if (finalText || interimText) {
+    resultBox.innerHTML = `
+      ${finalText ? `<p class="final-text">${finalText}</p>` : ""}
+      ${interimText ? `<p class="interim-text">${interimText}</p>` : ""}
+    `;
+    resultBox.scrollTop = resultBox.scrollHeight;
+    copyBtn.disabled = !finalText;
+  } else {
+    resultBox.innerHTML =
+      '<p class="placeholder">点击"开始录音"说话，或选择音频文件...</p>';
+    copyBtn.disabled = true;
+  }
+}
+
+function setStatus(mode) {
+  // mode: "idle" | "recording" | "processing"
+  if (mode === "recording") {
+    statusDot.className = "status-dot recording";
+    statusText.textContent = "录音中";
+  } else if (mode === "processing") {
+    statusDot.className = "status-dot recording";
+    statusText.textContent = "转写中";
+  } else {
+    statusDot.className = "status-dot";
+    statusText.textContent = "就绪";
+  }
+}
+
+// 切换录音
+async function toggleRecording() {
+  if (busy) return;
+
+  if (!recording) {
+    // 开始
+    try {
+      finalText = "";
+      interimText = "";
+      updateResultDisplay();
+
+      await invoke("start_recording");
+      recording = true;
+      setStatus("recording");
+      recordBtn.querySelector(".btn-text").textContent = "停止录音";
+      recordBtn.querySelector(".btn-icon").textContent = "⏹️";
+      setFileButtonMode("select");
+    } catch (error) {
+      console.error("开始录音失败:", error);
+      alert("开始录音失败: " + error);
+    }
+  } else {
+    // 停止
+    try {
+      await invoke("stop_recording");
+    } catch (error) {
+      console.error("停止录音失败:", error);
+    }
+    recording = false;
+    setStatus("idle");
+    recordBtn.querySelector(".btn-text").textContent = "开始录音";
+    recordBtn.querySelector(".btn-icon").textContent = "🎙️";
+    setFileButtonMode("select");
+  }
+}
+
+// 选择并转写文件
+async function selectAndTranscribeFile() {
+  if (recording) return;
+
+  if (busy) {
+    try {
+      await invoke("cancel_transcription");
+      busy = false;
+      setStatus(recording ? "recording" : "idle");
+      recordBtn.disabled = false;
+      setFileButtonMode("select");
+    } catch (error) {
+      console.error("取消转写失败:", error);
+    }
+    return;
+  }
+
+  try {
+    console.log("[DEBUG] 开始选择文件...");
+    const selected = await open({
+      multiple: false,
+      filters: [
+        { name: "Audio", extensions: ["mp3", "wav", "m4a", "flac", "ogg", "aac"] },
+      ],
+    });
+
+    console.log("[DEBUG] 选择的文件:", selected);
+    if (!selected) {
+      console.log("[DEBUG] 用户取消选择");
+      return;
+    }
+
+    busy = true;
+    finalText = "";
+    interimText = "";
+    updateResultDisplay();
+    setStatus("processing");
+    recordBtn.disabled = true;
+    setFileButtonMode("cancel");
+
+    console.log("[DEBUG] 调用 transcribe_file:", selected);
+    const result = await invoke("transcribe_file", { filePath: selected });
+    console.log("[DEBUG] transcribe_file 返回:", result);
+  } catch (error) {
+    console.error("转写失败:", error);
+    alert("转写失败: " + error);
+    setStatus("idle");
+    recordBtn.disabled = false;
+    busy = false;
+    setFileButtonMode("select");
+  }
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  statusIndicator = document.getElementById("status-indicator");
+  statusText = statusIndicator.querySelector(".status-text");
+  statusDot = statusIndicator.querySelector(".status-dot");
+  resultBox = document.getElementById("result-box");
+  recordBtn = document.getElementById("record-btn");
+  selectFileBtn = document.getElementById("select-file-btn");
+  copyBtn = document.getElementById("copy-btn");
+  setFileButtonMode("select");
+
+  await setupListener();
+
+  recordBtn.addEventListener("click", toggleRecording);
+  selectFileBtn.addEventListener("click", selectAndTranscribeFile);
+
+  copyBtn.addEventListener("click", async () => {
+    if (finalText) {
+      try {
+        await navigator.clipboard.writeText(finalText);
+        const el = copyBtn.querySelector(".btn-text");
+        const original = el.textContent;
+        el.textContent = "已复制!";
+        setTimeout(() => {
+          el.textContent = original;
+        }, 2000);
+      } catch (error) {
+        console.error("复制失败:", error);
+      }
+    }
+  });
+});

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>豆包语音输入</title>
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <main class="container">
+      <div class="header">
+        <h1>🎤 豆包语音输入</h1>
+        <p class="subtitle">麦克风实时转写 / 音频文件转写</p>
+      </div>
+
+      <div class="status-container">
+        <div class="status-indicator" id="status-indicator">
+          <span class="status-dot"></span>
+          <span class="status-text">就绪</span>
+        </div>
+      </div>
+
+      <div class="result-container">
+        <div class="result-box" id="result-box">
+          <p class="placeholder">点击"开始录音"说话，或选择音频文件...</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="record-btn" class="btn-primary">
+          <span class="btn-icon">🎙️</span>
+          <span class="btn-text">开始录音</span>
+        </button>
+        <button id="select-file-btn" class="btn-secondary">
+          <span class="btn-icon">📁</span>
+          <span class="btn-text">选择文件</span>
+        </button>
+        <button id="copy-btn" class="btn-secondary" disabled>
+          <span class="btn-icon">📋</span>
+          <span class="btn-text">复制结果</span>
+        </button>
+      </div>
+
+      <div class="hint">
+        <p>💡 点击"开始录音"实时识别，再次点击停止 · 文件支持 MP3/WAV/M4A/FLAC/OGG/AAC</p>
+      </div>
+    </main>
+  </body>
+</html>

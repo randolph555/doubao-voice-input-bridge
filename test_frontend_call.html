@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Tauri Call</title>
+</head>
+<body>
+    <h1>Test transcribe_file</h1>
+    <button id="testBtn">Call transcribe_file</button>
+    <pre id="output"></pre>
+
+    <script>
+        const { invoke } = window.__TAURI__.core;
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const output = document.getElementById('output');
+            output.textContent = 'Calling transcribe_file...\n';
+            
+            try {
+                const result = await invoke('transcribe_file', { 
+                    filePath: '/Users/lijunke/Downloads/caption_sample2.wav' 
+                });
+                output.textContent += 'Success: ' + result + '\n';
+            } catch (error) {
+                output.textContent += 'Error: ' + error + '\n';
+            }
+        });
+    </script>
+</body>
+</html>
