@@ -243,16 +243,31 @@ async fn start_recording(
     }
 
     // 加载凭据
-    let credentials = tokio::task::spawn_blocking(|| {
+    let credentials = match tokio::task::spawn_blocking(|| {
         Credentials::create_fresh()
             .map_err(|e| format!("加载凭据失败: {}", e))
     })
     .await
-    .map_err(|e| format!("任务错误: {}", e))??;
+    .map_err(|e| format!("任务错误: {}", e))
+    {
+        Ok(Ok(credentials)) => credentials,
+        Ok(Err(message)) | Err(message) => {
+            let mut active = state.active.lock().await;
+            *active = false;
+            return Err(message);
+        }
+    };
 
     // 启动麦克风采集（原始 f32 样本通过 std channel 送出）
     let (raw_tx, raw_rx) = std::sync::mpsc::channel::<Vec<f32>>();
-    let mic = modules::audio::start_capture(raw_tx)?;
+    let mic = match modules::audio::start_capture(raw_tx) {
+        Ok(mic) => mic,
+        Err(message) => {
+            let mut active = state.active.lock().await;
+            *active = false;
+            return Err(message);
+        }
+    };
     let src_rate = mic.sample_rate;
     let src_channels = mic.channels;
     println!("麦克风已启动: {} Hz, {} 声道", src_rate, src_channels);
@@ -356,6 +371,16 @@ async fn start_recording(
     let forward_task = tokio::spawn(async move {
         while let Some(result) = result_rx.recv().await {
             let _ = app.emit("transcription", result);
+        }
+        {
+            let mut guard = recording_state.mic.lock().await;
+            if let Some(mic) = guard.take() {
+                mic.stop();
+            }
+        }
+        {
+            let mut active = recording_state.active.lock().await;
+            *active = false;
         }
         {
             let mut stopping = recording_state.stopping.lock().await;
